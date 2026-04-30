@@ -175,7 +175,7 @@ public class Main {
             }
 
             // ── CASO 4: Terminal en pila ≠ token → ERROR de coincidencia
-            System.out.println("ERROR: se esperaba '" + tope + "' pero llegó '" + token + "'");
+            System.out.println("ERROR: se esperaba '" + tope + "' pero llego '" + token + "'");
             System.out.println("═".repeat(75));
             return false;
         }
@@ -184,9 +184,9 @@ public class Main {
     // ─── TOKENIZADOR SIMPLE ──────────────────────────────────────────────────────
 
     /**
-     * Tokeniza una expresión aritmética en texto.
-     * Convierte números a "num", identificadores a "id", y operadores tal cual.
-     * Agrega "$" al final automáticamente.
+     * Tokeniza una expresión aritmetica en texto.
+     * Convierte numeros a "num", identificadores a "id", y operadores tal cual.
+     * Agrega "$" al final automaticamente.
      *
      * Ejemplo: "a + 3 * (b - 1)"
      *   → ["id", "+", "num", "*", "(", "id", "-", "num", "$"]
@@ -228,7 +228,7 @@ public class Main {
                 case '(': tokens.add(LPAREN); break;
                 case ')': tokens.add(RPAREN); break;
                 default:
-                    System.out.println("Carácter desconocido ignorado: '" + c + "'");
+                    System.out.println("Caracter desconocido ignorado: '" + c + "'");
             }
             i++;
         }
