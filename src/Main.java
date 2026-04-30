@@ -3,10 +3,10 @@ import java.util.*;
 /**
  * ============================================================
  *  RECONOCEDOR DESCENDENTE CON PILA (LL(1))
- *  Taller de Gramáticas y Reconocimiento Descendente
+ *  Taller de Gramaticas y Reconocimiento Descendente
  * ============================================================
  *
- *  GRAMÁTICA usada (expresiones aritméticas LL(1)):
+ *  GRAMATICA usada (expresiones aritmeticas LL(1)):
  *
  *    E  → T E'
  *    E' → + T E' | - T E' | ε
@@ -14,16 +14,16 @@ import java.util.*;
  *    T' → * F T' | / F T' | ε
  *    F  → ( E ) | id | num
  *
- *  Esta gramática es LL(1): sin recursión izquierda y factorizada.
- *  Reconoce el lenguaje de expresiones aritméticas con +, -, *, /, paréntesis.
+ *  Esta gramatica es LL(1): sin recursion izquierda y factorizada.
+ *  Reconoce el lenguaje de expresiones aritmeticas con +, -, *, /, parentesis.
  *
- *  TABLA DE TRANSICIÓN (Parsing Table):
- *  Cada celda [No-Terminal][Terminal] indica qué producción aplicar.
+ *  TABLA DE TRANSICION (Parsing Table):
+ *  Cada celda [No-Terminal][Terminal] indica que producción aplicar.
  * ============================================================
  */
 public class Main {
 
-    // ─── SÍMBOLOS DE LA GRAMÁTICA ───────────────────────────────────────────────
+    // ─── SIMBOLOS DE LA GRAMATICA ───────────────────────────────────────────────
 
     // No-terminales
     static final String E  = "E";
@@ -42,15 +42,15 @@ public class Main {
     static final String ID     = "id";
     static final String NUM    = "num";
     static final String EOF    = "$";   // Marcador de fin de cadena
-    static final String EPSILON = "ε"; // Producción vacía
+    static final String EPSILON = "ε"; // Produccion vacia
 
-    // Símbolo inicial y fondo de pila
+    // Simbolo inicial y fondo de pila
     static final String START = E;
     static final String BOTTOM = "$";
 
     // ─── TABLA LL(1) ────────────────────────────────────────────────────────────
-    // parseTable[noTerminal][terminal] = List<String> con los símbolos de la producción
-    // null significa ERROR (casilla vacía en la tabla)
+    // parseTable[noTerminal][terminal] = List<String> con los simbolos de la produccion
+    // null significa ERROR (casilla vacia en la tabla)
 
     static final Map<String, Map<String, List<String>>> parseTable = new HashMap<>();
 
@@ -91,7 +91,7 @@ public class Main {
         put(F, NUM,    Collections.singletonList(NUM));
     }
 
-    // Método auxiliar para cargar la tabla
+    // Metodo auxiliar para cargar la tabla
     static void put(String nonTerminal, String terminal, List<String> production) {
         parseTable
                 .computeIfAbsent(nonTerminal, k -> new HashMap<>())
@@ -111,7 +111,7 @@ public class Main {
      * @return true si la cadena es aceptada, false si no.
      */
     static boolean reconocer(List<String> tokens) {
-        // Inicializar pila: tope = símbolo inicial, fondo = $
+        // Inicializar pila: tope = simbolo inicial, fondo = $
         Deque<String> pila = new ArrayDeque<>();
         pila.push(BOTTOM);  // primero el fondo
         pila.push(START);   // encima el símbolo inicial
@@ -125,7 +125,7 @@ public class Main {
         System.out.println("─".repeat(75));
 
         while (true) {
-            String tope = pila.peek();              // símbolo en tope de pila
+            String tope = pila.peek();              // simbolos en tope de pila
             String token = tokens.get(pos);         // token actual de entrada
 
             // Imprimir estado actual
@@ -135,7 +135,7 @@ public class Main {
 
             // ── CASO 1: Tope y token son ambos $ → ACEPTAR
             if (tope.equals(BOTTOM) && token.equals(EOF)) {
-                System.out.println("✅ ACEPTAR");
+                System.out.println("ACEPTAR");
                 System.out.println("═".repeat(75));
                 return true;
             }
@@ -155,27 +155,27 @@ public class Main {
                     List<String> produccion = row.get(token);
                     pila.pop(); // sacar el no-terminal
 
-                    // Apilar la producción al revés (para que el primero quede en tope)
+                    // Apilar la produccion al reves (para que el primero quede en tope)
                     List<String> reversed = new ArrayList<>(produccion);
                     Collections.reverse(reversed);
                     for (String sym : reversed) {
                         pila.push(sym);
                     }
 
-                    // Mostrar producción aplicada
+                    // Mostrar produccion aplicada
                     String prodStr = produccion.isEmpty() ? EPSILON : String.join(" ", produccion);
                     System.out.println(tope + " → " + prodStr);
                     continue;
                 } else {
-                    // Casilla vacía en la tabla → ERROR
-                    System.out.println("❌ ERROR: no hay regla para [" + tope + ", " + token + "]");
+                    // Casilla vacia en la tabla → ERROR
+                    System.out.println("ERROR: no hay regla para [" + tope + ", " + token + "]");
                     System.out.println("═".repeat(75));
                     return false;
                 }
             }
 
             // ── CASO 4: Terminal en pila ≠ token → ERROR de coincidencia
-            System.out.println("❌ ERROR: se esperaba '" + tope + "' pero llegó '" + token + "'");
+            System.out.println("ERROR: se esperaba '" + tope + "' pero llegó '" + token + "'");
             System.out.println("═".repeat(75));
             return false;
         }
@@ -202,7 +202,7 @@ public class Main {
             // Saltar espacios
             if (Character.isWhitespace(c)) { i++; continue; }
 
-            // Número
+            // Numero
             if (Character.isDigit(c)) {
                 while (i < expresion.length() && Character.isDigit(expresion.charAt(i))) i++;
                 tokens.add(NUM);
@@ -219,7 +219,7 @@ public class Main {
                 continue;
             }
 
-            // Operadores y paréntesis
+            // Operadores y parentesis
             switch (c) {
                 case '+': tokens.add(PLUS);   break;
                 case '-': tokens.add(MINUS);  break;
@@ -228,7 +228,7 @@ public class Main {
                 case '(': tokens.add(LPAREN); break;
                 case ')': tokens.add(RPAREN); break;
                 default:
-                    System.out.println("⚠️  Carácter desconocido ignorado: '" + c + "'");
+                    System.out.println("Carácter desconocido ignorado: '" + c + "'");
             }
             i++;
         }
@@ -237,7 +237,7 @@ public class Main {
         return tokens;
     }
 
-    // ─── UTILIDADES DE VISUALIZACIÓN ────────────────────────────────────────────
+    // ─── UTILIDADES DE VISUALIZACION ────────────────────────────────────────────
 
     static String pilaToString(Deque<String> pila) {
         List<String> lista = new ArrayList<>(pila);  // tope al inicio
@@ -265,9 +265,9 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("╔══════════════════════════════════════════════════════════════════════════╗");
-        System.out.println("║     RECONOCEDOR DESCENDENTE LL(1) — Gramática de Expresiones            ║");
+        System.out.println("║     RECONOCEDOR DESCENDENTE LL(1) — Gramatica de Expresiones            ║");
         System.out.println("╠══════════════════════════════════════════════════════════════════════════╣");
-        System.out.println("║  Gramática:                                                              ║");
+        System.out.println("║  Gramaticas:                                                              ║");
         System.out.println("║    E  → T E'                                                             ║");
         System.out.println("║    E' → + T E' | - T E' | ε                                             ║");
         System.out.println("║    T  → F T'                                                             ║");
@@ -277,12 +277,12 @@ public class Main {
 
         // Casos de prueba
         String[] casos = {
-                "a + b",          // válido
-                "3 * (x - 2)",    // válido con paréntesis
-                "a + b * c",      // válido con precedencia
-                "(a + b) / c",    // válido
-                "a + + b",        // INVÁLIDO: dos operadores seguidos
-                "(a + b",         // INVÁLIDO: paréntesis sin cerrar
+                "a + b",          // valido
+                "3 * (x - 2)",    // valido con parentesis
+                "a + b * c",      // valido con precedencia
+                "(a + b) / c",    // valido
+                "a + + b",        // INVALIDO: dos operadores seguidos
+                "(a + b",         // INVALIDO: parentesis sin cerrar
         };
 
         for (String expr : casos) {
@@ -291,7 +291,7 @@ public class Main {
             System.out.println("   Tokens : " + tokens);
 
             boolean resultado = reconocer(tokens);
-            System.out.println("\n   Resultado: " + (resultado ? "✅ ACEPTADA" : "❌ RECHAZADA"));
+            System.out.println("\n   Resultado: " + (resultado ? "ACEPTADA" : "RECHAZADA"));
             System.out.println("─".repeat(75));
         }
     }
