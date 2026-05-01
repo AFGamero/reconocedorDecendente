@@ -4,11 +4,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 /**
- * ============================================================
- *  ESCANER PARA LENGUAJE C SIMPLIFICADO
- *  Compiladores 2 - Tarea 2
- * ============================================================
- *
+ *  ESCANER PARA LENGUAJE C
  *  Implementa un AFD (Automata Finito Determinista) para reconocer
  *  los siguientes tipos de tokens:
  *
@@ -19,7 +15,6 @@ import javax.swing.JTextArea;
  *        %, ^, ~
  *    - INT_NUM : uno o mas digitos
  *    - ID      : letra o guion bajo, seguido de letras, digitos o _
- * ============================================================
  */
 public class Main {
 
@@ -28,7 +23,7 @@ public class Main {
     static final Map<String, String> KEYWORDS = new HashMap<>();
 
     static {
-        // Keywords pedidos en el enunciado (seccion 2.1)
+        // palabras claves
         KEYWORDS.put("int", "INT");
         KEYWORDS.put("main", "MAIN");
         KEYWORDS.put("void", "VOID");
