@@ -13,21 +13,12 @@ import javax.swing.JTextArea;
  *  los siguientes tipos de tokens:
  *
  *    - Palabras Reservadas (Keywords): int, main, void, break, do,
- *        else, if, while, return, scanf, printf, auto, double,
- *        struct, case, enum, long, switch, char, extern, typedef,
- *        const, float, short, unsigned, continue, for, signed,
- *        default, goto, sizeof, volatile, static, register, union
+ *        else, if, while, return, scanf, printf
  *    - Simbolos Especiales: {, }, [, ], (, ), ;, +, -, *, /, &,
  *        |, !, =, <, >, <<, >>, ==, !=, <=, >=, &&, ||, ,, ., ->,
  *        %, ^, ~
  *    - INT_NUM : uno o mas digitos
  *    - ID      : letra o guion bajo, seguido de letras, digitos o _
- *
- *  Directivas de preprocesamiento (#include, #define, etc.) son
- *  reconocidas y reportadas como PREPROCESSOR
- *  Cadenas de caracteres ("...") se reconocen como STRING_LITERAL
- *  Caracteres de escape dentro de cadenas son manejados
- *  Comentarios de linea (//) y bloque (/* ... * /) son ignorados
  * ============================================================
  */
 public class Main {
@@ -37,7 +28,7 @@ public class Main {
     static final Map<String, String> KEYWORDS = new HashMap<>();
 
     static {
-        // Keywords del enunciado principal
+        // Keywords pedidos en el enunciado (seccion 2.1)
         KEYWORDS.put("int", "INT");
         KEYWORDS.put("main", "MAIN");
         KEYWORDS.put("void", "VOID");
@@ -49,31 +40,6 @@ public class Main {
         KEYWORDS.put("return", "RETURN");
         KEYWORDS.put("scanf", "READ");
         KEYWORDS.put("printf", "WRITE");
-        // Keywords adicionales del lenguaje C completo
-        KEYWORDS.put("auto", "AUTO");
-        KEYWORDS.put("double", "DOUBLE");
-        KEYWORDS.put("struct", "STRUCT");
-        KEYWORDS.put("case", "CASE");
-        KEYWORDS.put("enum", "ENUM");
-        KEYWORDS.put("long", "LONG");
-        KEYWORDS.put("switch", "SWITCH");
-        KEYWORDS.put("char", "CHAR");
-        KEYWORDS.put("extern", "EXTERN");
-        KEYWORDS.put("typedef", "TYPEDEF");
-        KEYWORDS.put("const", "CONST");
-        KEYWORDS.put("float", "FLOAT");
-        KEYWORDS.put("short", "SHORT");
-        KEYWORDS.put("unsigned", "UNSIGNED");
-        KEYWORDS.put("continue", "CONTINUE");
-        KEYWORDS.put("for", "FOR");
-        KEYWORDS.put("signed", "SIGNED");
-        KEYWORDS.put("default", "DEFAULT");
-        KEYWORDS.put("goto", "GOTO");
-        KEYWORDS.put("sizeof", "SIZEOF");
-        KEYWORDS.put("volatile", "VOLATILE");
-        KEYWORDS.put("static", "STATIC");
-        KEYWORDS.put("register", "REGISTER");
-        KEYWORDS.put("union", "UNION");
     }
 
     // ─── CLASE TOKEN ────────────────────────────────────────────────────────────
@@ -398,9 +364,7 @@ public class Main {
         System.out.println(
             "    Keywords  : int, main, void, break, do, else, if,"
         );
-        System.out.println(
-            "                while, return, scanf, printf, y mas..."
-        );
+        System.out.println("                while, return, scanf, printf");
         System.out.println(
             "    Simbolos  : {, }, [, ], (, ), ;, +, -, *, /, &, |,"
         );
