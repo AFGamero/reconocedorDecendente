@@ -1,370 +1,464 @@
 import java.util.*;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 /**
  * ============================================================
- *  RECONOCEDOR DESCENDENTE CON PILA (LL(1))
- *  Taller de Gramaticas y Reconocimiento Descendente
+ *  ESCANER PARA LENGUAJE C SIMPLIFICADO
+ *  Compiladores 2 - Tarea 2
  * ============================================================
  *
- *  GRAMATICA usada (expresiones aritmeticas LL(1)):
+ *  Implementa un AFD (Automata Finito Determinista) para reconocer
+ *  los siguientes tipos de tokens:
  *
- *    E  → T E'
- *    E' → + T E' | - T E' | ε
- *    T  → F T'
- *    T' → * F T' | / F T' | ε
- *    F  → ( E ) | id | num
+ *    - Palabras Reservadas (Keywords): int, main, void, break, do,
+ *        else, if, while, return, scanf, printf, auto, double,
+ *        struct, case, enum, long, switch, char, extern, typedef,
+ *        const, float, short, unsigned, continue, for, signed,
+ *        default, goto, sizeof, volatile, static, register, union
+ *    - Simbolos Especiales: {, }, [, ], (, ), ;, +, -, *, /, &,
+ *        |, !, =, <, >, <<, >>, ==, !=, <=, >=, &&, ||, ,, ., ->,
+ *        %, ^, ~
+ *    - INT_NUM : uno o mas digitos
+ *    - ID      : letra o guion bajo, seguido de letras, digitos o _
  *
- *  Esta gramatica es LL(1): sin recursion izquierda y factorizada.
- *  Reconoce el lenguaje de expresiones aritmeticas con +, -, *, /, parentesis.
- *
- *  TABLA DE TRANSICION (Parsing Table):
- *  Cada celda [No-Terminal][Terminal] indica que produccion aplicar.
+ *  Directivas de preprocesamiento (#include, #define, etc.) son
+ *  reconocidas y reportadas como PREPROCESSOR
+ *  Cadenas de caracteres ("...") se reconocen como STRING_LITERAL
+ *  Caracteres de escape dentro de cadenas son manejados
+ *  Comentarios de linea (//) y bloque (/* ... * /) son ignorados
  * ============================================================
  */
 public class Main {
 
-    // ─── SIMBOLOS DE LA GRAMATICA ───────────────────────────────────────────────
-
-    // No-terminales
-    static final String E = "E";
-    static final String EP = "E'"; // E'  (E prima)
-    static final String T = "T";
-    static final String TP = "T'"; // T'  (T prima)
-    static final String F = "F";
-
-    // Terminales
-    static final String PLUS = "+";
-    static final String MINUS = "-";
-    static final String TIMES = "*";
-    static final String DIV = "/";
-    static final String LPAREN = "(";
-    static final String RPAREN = ")";
-    static final String ID = "id";
-    static final String NUM = "num";
-    static final String EOF = "$"; // Marcador de fin de cadena
-    static final String EPSILON = "ε"; // Produccion vacia
-
-    // Simbolo inicial y fondo de pila
-    static final String START = E;
-    static final String BOTTOM = "$";
-
-    // ─── TABLA LL(1) ────────────────────────────────────────────────────────────
-    // parseTable[noTerminal][terminal] = List<String> con los simbolos de la produccion
-    // null significa ERROR (casilla vacia en la tabla)
-
-    static final Map<String, Map<String, List<String>>> parseTable =
-        new HashMap<>();
+    // ─── TABLA DE PALABRAS RESERVADAS ───────────────────────────────────────────
+    // Mapea el lexema al nombre del token correspondiente
+    static final Map<String, String> KEYWORDS = new HashMap<>();
 
     static {
-        // E → T E'       para: id, num, (
-        put(E, ID, Arrays.asList(T, EP));
-        put(E, NUM, Arrays.asList(T, EP));
-        put(E, LPAREN, Arrays.asList(T, EP));
-
-        // E' → + T E'    para: +
-        put(EP, PLUS, Arrays.asList(PLUS, T, EP));
-        // E' → - T E'    para: -
-        put(EP, MINUS, Arrays.asList(MINUS, T, EP));
-        // E' → ε         para: ), $
-        put(EP, RPAREN, Collections.emptyList()); // ε
-        put(EP, EOF, Collections.emptyList()); // ε
-
-        // T → F T'       para: id, num, (
-        put(T, ID, Arrays.asList(F, TP));
-        put(T, NUM, Arrays.asList(F, TP));
-        put(T, LPAREN, Arrays.asList(F, TP));
-
-        // T' → * F T'    para: *
-        put(TP, TIMES, Arrays.asList(TIMES, F, TP));
-        // T' → / F T'    para: /
-        put(TP, DIV, Arrays.asList(DIV, F, TP));
-        // T' → ε         para: +, -, ), $
-        put(TP, PLUS, Collections.emptyList()); // ε
-        put(TP, MINUS, Collections.emptyList()); // ε
-        put(TP, RPAREN, Collections.emptyList()); // ε
-        put(TP, EOF, Collections.emptyList()); // ε
-
-        // F → ( E )      para: (
-        put(F, LPAREN, Arrays.asList(LPAREN, E, RPAREN));
-        // F → id         para: id
-        put(F, ID, Collections.singletonList(ID));
-        // F → num        para: num
-        put(F, NUM, Collections.singletonList(NUM));
+        // Keywords del enunciado principal
+        KEYWORDS.put("int", "INT");
+        KEYWORDS.put("main", "MAIN");
+        KEYWORDS.put("void", "VOID");
+        KEYWORDS.put("break", "BREAK");
+        KEYWORDS.put("do", "DO");
+        KEYWORDS.put("else", "ELSE");
+        KEYWORDS.put("if", "IF");
+        KEYWORDS.put("while", "WHILE");
+        KEYWORDS.put("return", "RETURN");
+        KEYWORDS.put("scanf", "READ");
+        KEYWORDS.put("printf", "WRITE");
+        // Keywords adicionales del lenguaje C completo
+        KEYWORDS.put("auto", "AUTO");
+        KEYWORDS.put("double", "DOUBLE");
+        KEYWORDS.put("struct", "STRUCT");
+        KEYWORDS.put("case", "CASE");
+        KEYWORDS.put("enum", "ENUM");
+        KEYWORDS.put("long", "LONG");
+        KEYWORDS.put("switch", "SWITCH");
+        KEYWORDS.put("char", "CHAR");
+        KEYWORDS.put("extern", "EXTERN");
+        KEYWORDS.put("typedef", "TYPEDEF");
+        KEYWORDS.put("const", "CONST");
+        KEYWORDS.put("float", "FLOAT");
+        KEYWORDS.put("short", "SHORT");
+        KEYWORDS.put("unsigned", "UNSIGNED");
+        KEYWORDS.put("continue", "CONTINUE");
+        KEYWORDS.put("for", "FOR");
+        KEYWORDS.put("signed", "SIGNED");
+        KEYWORDS.put("default", "DEFAULT");
+        KEYWORDS.put("goto", "GOTO");
+        KEYWORDS.put("sizeof", "SIZEOF");
+        KEYWORDS.put("volatile", "VOLATILE");
+        KEYWORDS.put("static", "STATIC");
+        KEYWORDS.put("register", "REGISTER");
+        KEYWORDS.put("union", "UNION");
     }
 
-    // Metodo auxiliar para cargar la tabla
-    static void put(
-        String nonTerminal,
-        String terminal,
-        List<String> production
-    ) {
-        parseTable
-            .computeIfAbsent(nonTerminal, k -> new HashMap<>())
-            .put(terminal, production);
-    }
+    // ─── CLASE TOKEN ────────────────────────────────────────────────────────────
+    // Representa un token con su tipo y valor (lexema)
+    static class Token {
 
-    // ─── CONJUNTO DE NO-TERMINALES ──────────────────────────────────────────────
-    static final Set<String> NON_TERMINALS = new HashSet<>(
-        Arrays.asList(E, EP, T, TP, F)
-    );
+        String tipo;
+        String valor;
 
-    // ─── RECONOCEDOR ────────────────────────────────────────────────────────────
+        Token(String tipo, String valor) {
+            this.tipo = tipo;
+            this.valor = valor;
+        }
 
-    /**
-     * Reconoce si una lista de tokens pertenece al lenguaje.
-     * Imprime cada paso de la tabla de reconocimiento.
-     *
-     * @param tokens  Lista de tokens de entrada (terminada en "$")
-     * @return true si la cadena es aceptada, false si no.
-     */
-    static boolean reconocer(List<String> tokens) {
-        // Inicializar pila: tope = simbolo inicial, fondo = $
-        Deque<String> pila = new ArrayDeque<>();
-        pila.push(BOTTOM); // primero el fondo
-        pila.push(START); // encima el simbolo inicial
-
-        int pos = 0; // posicion actual en la entrada
-
-        System.out.println("\n" + "═".repeat(75));
-        System.out.println(" RECONOCIMIENTO DESCENDENTE CON PILA");
-        System.out.println("═".repeat(75));
-        System.out.printf(
-            "%-28s %-20s %-25s%n",
-            "PILA (tope→)",
-            "ENTRADA (pos→)",
-            "ACCION"
-        );
-        System.out.println("─".repeat(75));
-
-        while (true) {
-            String tope = pila.peek(); // simbolos en tope de pila
-            String token = tokens.get(pos); // token actual de entrada
-
-            // Imprimir estado actual
-            String pilaStr = pilaToString(pila);
-            String entradaStr = entradaToString(tokens, pos);
-            System.out.printf("%-28s %-20s ", pilaStr, entradaStr);
-
-            // ── CASO 1: Tope y token son ambos $ → ACEPTAR
-            if (tope.equals(BOTTOM) && token.equals(EOF)) {
-                System.out.println("ACEPTAR");
-                System.out.println("═".repeat(75));
-                return true;
-            }
-
-            // ── CASO 2: Tope == token (terminal en tope) → HACER MATCH
-            if (!NON_TERMINALS.contains(tope) && tope.equals(token)) {
-                pila.pop();
-                pos++;
-                System.out.println("MATCH '" + token + "'");
-                continue;
-            }
-
-            // ── CASO 3: Tope es no-terminal → consultar tabla
-            if (NON_TERMINALS.contains(tope)) {
-                Map<String, List<String>> row = parseTable.get(tope);
-                if (row != null && row.containsKey(token)) {
-                    List<String> produccion = row.get(token);
-                    pila.pop(); // sacar el no-terminal
-
-                    // Apilar la produccion al reves (para que el primero quede en tope)
-                    List<String> reversed = new ArrayList<>(produccion);
-                    Collections.reverse(reversed);
-                    for (String sym : reversed) {
-                        pila.push(sym);
-                    }
-
-                    // Mostrar produccion aplicada
-                    String prodStr = produccion.isEmpty()
-                        ? EPSILON
-                        : String.join(" ", produccion);
-                    System.out.println(tope + " → " + prodStr);
-                    continue;
-                } else {
-                    // Casilla vacia en la tabla → ERROR
-                    System.out.println(
-                        "ERROR: no hay regla para [" + tope + ", " + token + "]"
-                    );
-                    System.out.println("═".repeat(75));
-                    return false;
-                }
-            }
-
-            // ── CASO 4: Terminal en pila ≠ token → ERROR de coincidencia
-            System.out.println(
-                "ERROR: se esperaba '" + tope + "' pero llego '" + token + "'"
-            );
-            System.out.println("═".repeat(75));
-            return false;
+        @Override
+        public String toString() {
+            return "Token: " + tipo + " \"" + valor + "\"";
         }
     }
 
-    // ─── TOKENIZADOR SIMPLE ──────────────────────────────────────────────────────
-
+    // ─── FUNCION DE ESCANEO (AFD) ────────────────────────────────────────────────
     /**
-     * Tokeniza una expresion aritmetica en texto.
-     * Convierte numeros a "num", identificadores a "id", y operadores tal cual.
-     * Agrega "$" al final automaticamente.
+     * Recibe el codigo fuente C como cadena y retorna la lista de tokens
+     * El AFD avanza caracter por caracter y decide el tipo de token segun
+     * el estado actual y el caracter leido
      *
-     * Ejemplo: "a + 3 * (b - 1)"
-     *   → ["id", "+", "num", "*", "(", "id", "-", "num", "$"]
+     * Estados implicitos del AFD:
+     *   START        -> estado inicial, decide que token comenzar
+     *   IN_ID        -> leyendo un identificador o keyword
+     *   IN_NUM       -> leyendo un numero entero
+     *   IN_STRING    -> leyendo una cadena entre comillas dobles
+     *   IN_COMMENT   -> leyendo un comentario de linea o bloque
+     *   IN_OP        -> leyendo un operador que puede ser de uno o dos chars
+     *
+     * @param codigo  Texto del programa C a escanear
+     * @return        Lista de tokens reconocidos
      */
-    static List<String> tokenizar(String expresion) {
-        List<String> tokens = new ArrayList<>();
+    static List<Token> escanear(String codigo) {
+        List<Token> tokens = new ArrayList<>();
         int i = 0;
-        expresion = expresion.trim();
+        int n = codigo.length();
 
-        while (i < expresion.length()) {
-            char c = expresion.charAt(i);
+        while (i < n) {
+            char c = codigo.charAt(i);
 
-            // Saltar espacios
+            // ── Saltar espacios en blanco y saltos de linea
             if (Character.isWhitespace(c)) {
                 i++;
                 continue;
             }
 
-            // Numero
-            if (Character.isDigit(c)) {
-                while (
-                    i < expresion.length() &&
-                    Character.isDigit(expresion.charAt(i))
-                ) i++;
-                tokens.add(NUM);
+            // ── Directivas de preprocesamiento (#include, #define, etc.)
+            if (c == '#') {
+                int inicio = i;
+                // Leer hasta fin de linea
+                while (i < n && codigo.charAt(i) != '\n') {
+                    i++;
+                }
+                String directiva = codigo.substring(inicio, i).trim();
+                tokens.add(new Token("PREPROCESSOR", directiva));
                 continue;
             }
 
-            // Identificador
+            // ── Comentarios de linea (//) y de bloque (/* ... */)
+            if (c == '/' && i + 1 < n) {
+                char sig = codigo.charAt(i + 1);
+                if (sig == '/') {
+                    // Comentario de linea: ignorar hasta fin de linea
+                    while (i < n && codigo.charAt(i) != '\n') {
+                        i++;
+                    }
+                    continue;
+                }
+                if (sig == '*') {
+                    // Comentario de bloque: ignorar hasta encontrar */
+                    i += 2;
+                    while (i + 1 < n) {
+                        if (
+                            codigo.charAt(i) == '*' &&
+                            codigo.charAt(i + 1) == '/'
+                        ) {
+                            i += 2;
+                            break;
+                        }
+                        i++;
+                    }
+                    continue;
+                }
+            }
+
+            // ── Cadenas de texto entre comillas dobles
+            if (c == '"') {
+                StringBuilder sb = new StringBuilder();
+                sb.append('"');
+                i++;
+                while (i < n && codigo.charAt(i) != '"') {
+                    // Manejar caracteres de escape: \n, \t, \r, \\, \0, \v, \f, \a, \", \'
+                    if (codigo.charAt(i) == '\\' && i + 1 < n) {
+                        sb.append(codigo.charAt(i));
+                        sb.append(codigo.charAt(i + 1));
+                        i += 2;
+                    } else {
+                        sb.append(codigo.charAt(i));
+                        i++;
+                    }
+                }
+                sb.append('"');
+                i++; // consumir la comilla de cierre
+                tokens.add(new Token("STRING_LITERAL", sb.toString()));
+                continue;
+            }
+
+            // ── Cadenas entre comillas simples (char literal)
+            if (c == '\'') {
+                StringBuilder sb = new StringBuilder();
+                sb.append('\'');
+                i++;
+                while (i < n && codigo.charAt(i) != '\'') {
+                    if (codigo.charAt(i) == '\\' && i + 1 < n) {
+                        sb.append(codigo.charAt(i));
+                        sb.append(codigo.charAt(i + 1));
+                        i += 2;
+                    } else {
+                        sb.append(codigo.charAt(i));
+                        i++;
+                    }
+                }
+                sb.append('\'');
+                i++;
+                tokens.add(new Token("CHAR_LITERAL", sb.toString()));
+                continue;
+            }
+
+            // ── Identificadores y palabras reservadas
+            // ID = (letra | _)(letra | digito | _)*
             if (Character.isLetter(c) || c == '_') {
+                int inicio = i;
                 while (
-                    i < expresion.length() &&
-                    (Character.isLetterOrDigit(expresion.charAt(i)) ||
-                        expresion.charAt(i) == '_')
+                    i < n &&
+                    (Character.isLetterOrDigit(codigo.charAt(i)) ||
+                        codigo.charAt(i) == '_')
                 ) {
                     i++;
                 }
-                tokens.add(ID);
+                String lexema = codigo.substring(inicio, i);
+                // Verificar si es keyword o identificador
+                String tipo = KEYWORDS.getOrDefault(lexema, "ID");
+                tokens.add(new Token(tipo, lexema));
                 continue;
             }
 
-            // Operadores y parentesis
+            // ── Numeros enteros
+            // INT_NUM = digito+
+            if (Character.isDigit(c)) {
+                int inicio = i;
+                while (i < n && Character.isDigit(codigo.charAt(i))) {
+                    i++;
+                }
+                tokens.add(new Token("INT_NUM", codigo.substring(inicio, i)));
+                continue;
+            }
+
+            // ── Simbolos especiales y operadores (AFD para operadores de 1 o 2 chars)
             switch (c) {
-                case '+':
-                    tokens.add(PLUS);
+                case '{':
+                    tokens.add(new Token("LBRACE", "{"));
+                    i++;
                     break;
-                case '-':
-                    tokens.add(MINUS);
+                case '}':
+                    tokens.add(new Token("RBRACE", "}"));
+                    i++;
                     break;
-                case '*':
-                    tokens.add(TIMES);
+                case '[':
+                    tokens.add(new Token("LSQUARE", "["));
+                    i++;
                     break;
-                case '/':
-                    tokens.add(DIV);
+                case ']':
+                    tokens.add(new Token("RSQUARE", "]"));
+                    i++;
                     break;
                 case '(':
-                    tokens.add(LPAREN);
+                    tokens.add(new Token("LPAR", "("));
+                    i++;
                     break;
                 case ')':
-                    tokens.add(RPAREN);
+                    tokens.add(new Token("RPAR", ")"));
+                    i++;
+                    break;
+                case ';':
+                    tokens.add(new Token("SEMI", ";"));
+                    i++;
+                    break;
+                case '+':
+                    tokens.add(new Token("PLUS", "+"));
+                    i++;
+                    break;
+                case '*':
+                    tokens.add(new Token("MUL_OP", "*"));
+                    i++;
+                    break;
+                case ',':
+                    tokens.add(new Token("COMMA", ","));
+                    i++;
+                    break;
+                case '.':
+                    tokens.add(new Token("DOT", "."));
+                    i++;
+                    break;
+                case '^':
+                    tokens.add(new Token("XOR_OP", "^"));
+                    i++;
+                    break;
+                case '~':
+                    tokens.add(new Token("COMPL_OP", "~"));
+                    i++;
+                    break;
+                case '%':
+                    tokens.add(new Token("MOD_OP", "%"));
+                    i++;
+                    break;
+                // '-' puede ser MINUS o ->
+                case '-':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '>') {
+                        tokens.add(new Token("ARROW", "->"));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("MINUS", "-"));
+                        i++;
+                    }
+                    break;
+                // '/' ya fue manejado arriba (comentarios), aqui es DIV_OP
+                case '/':
+                    tokens.add(new Token("DIV_OP", "/"));
+                    i++;
+                    break;
+                // '&' puede ser AND_OP o &&
+                case '&':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '&') {
+                        tokens.add(new Token("ANDAND", "&&"));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("AND_OP", "&"));
+                        i++;
+                    }
+                    break;
+                // '|' puede ser OR_OP o ||
+                case '|':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '|') {
+                        tokens.add(new Token("OROR", "||"));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("OR_OP", "|"));
+                        i++;
+                    }
+                    break;
+                // '!' puede ser NOT_OP o !=
+                case '!':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '=') {
+                        tokens.add(new Token("NOTEQ", "!="));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("NOT_OP", "!"));
+                        i++;
+                    }
+                    break;
+                // '=' puede ser ASSIGN o ==
+                case '=':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '=') {
+                        tokens.add(new Token("EQ", "=="));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("ASSIGN", "="));
+                        i++;
+                    }
+                    break;
+                // '<' puede ser LT, <= o <<
+                case '<':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '<') {
+                        tokens.add(new Token("SHL_OP", "<<"));
+                        i += 2;
+                    } else if (i + 1 < n && codigo.charAt(i + 1) == '=') {
+                        tokens.add(new Token("LTEQ", "<="));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("LT", "<"));
+                        i++;
+                    }
+                    break;
+                // '>' puede ser GT, >= o >>
+                case '>':
+                    if (i + 1 < n && codigo.charAt(i + 1) == '>') {
+                        tokens.add(new Token("SHR_OP", ">>"));
+                        i += 2;
+                    } else if (i + 1 < n && codigo.charAt(i + 1) == '=') {
+                        tokens.add(new Token("GTEQ", ">="));
+                        i += 2;
+                    } else {
+                        tokens.add(new Token("GT", ">"));
+                        i++;
+                    }
                     break;
                 default:
-                    System.out.println(
-                        "Caracter desconocido ignorado: '" + c + "'"
-                    );
+                    // Caracter no reconocido: reportar error y avanzar
+                    tokens.add(new Token("ERROR", String.valueOf(c)));
+                    i++;
+                    break;
             }
-            i++;
         }
 
-        tokens.add(EOF); // agregar marcador de fin
         return tokens;
-    }
-
-    // ─── UTILIDADES DE VISUALIZACION ────────────────────────────────────────────
-
-    static String pilaToString(Deque<String> pila) {
-        List<String> lista = new ArrayList<>(pila); // tope al inicio
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < lista.size(); i++) {
-            sb.append(lista.get(i));
-            if (i < lista.size() - 1) sb.append(", ");
-        }
-        sb.append("]");
-        String s = sb.toString();
-        return s.length() > 27 ? s.substring(0, 24) + "...]" : s;
-    }
-
-    static String entradaToString(List<String> tokens, int pos) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = pos; i < tokens.size(); i++) {
-            sb.append(tokens.get(i));
-            if (i < tokens.size() - 1) sb.append(" ");
-        }
-        String s = sb.toString();
-        return s.length() > 19 ? s.substring(0, 16) + "..." : s;
     }
 
     // ─── PROGRAMA PRINCIPAL ──────────────────────────────────────────────────────
 
     public static void main(String[] args) {
+        // Encabezado en consola
+        System.out.println("=".repeat(70));
+        System.out.println("  ESCANER PARA LENGUAJE C SIMPLIFICADO");
+        System.out.println("  Compiladores 2 - Tarea 2");
+        System.out.println("=".repeat(70));
+        System.out.println("  Tipos de token reconocidos:");
         System.out.println(
-            "╔══════════════════════════════════════════════════════════════════════════╗"
+            "    Keywords  : int, main, void, break, do, else, if,"
         );
         System.out.println(
-            "║     RECONOCEDOR DESCENDENTE LL(1) — Gramatica de Expresiones            ║"
+            "                while, return, scanf, printf, y mas..."
         );
         System.out.println(
-            "╠══════════════════════════════════════════════════════════════════════════╣"
+            "    Simbolos  : {, }, [, ], (, ), ;, +, -, *, /, &, |,"
         );
         System.out.println(
-            "║  Gramaticas:                                                              ║"
+            "                !, =, <, >, <<, >>, ==, !=, <=, >=, &&,"
         );
-        System.out.println(
-            "║    E  → T E'                                                             ║"
-        );
-        System.out.println(
-            "║    E' → + T E' | - T E' | ε                                             ║"
-        );
-        System.out.println(
-            "║    T  → F T'                                                             ║"
-        );
-        System.out.println(
-            "║    T' → * F T' | / F T' | ε                                             ║"
-        );
-        System.out.println(
-            "║    F  → ( E ) | id | num                                                 ║"
-        );
-        System.out.println(
-            "╚══════════════════════════════════════════════════════════════════════════╝\n"
-        );
+        System.out.println("                ||, ,, ., ->, %, ^, ~");
+        System.out.println("    INT_NUM   : secuencias de digitos");
+        System.out.println("    ID        : identificadores");
+        System.out.println("=".repeat(70));
 
         String ultimoResultado = "";
 
-        while (true) { //joptionpane
-            String expr = JOptionPane.showInputDialog(
+        while (true) {
+            // Solicitar codigo C al usuario via JOptionPane
+            String codigo = JOptionPane.showInputDialog(
                 null,
-                ultimoResultado + "Ingrese una expresion aritmetica:",
-                "Reconocedor LL(1)",
+                ultimoResultado + "Ingrese el codigo C a escanear:",
+                "Escaner C - Compiladores 2",
                 JOptionPane.QUESTION_MESSAGE
             );
 
-            if (expr == null) break;
+            // Si el usuario cancela, terminar
+            if (codigo == null) break;
 
-            System.out.println("\n▶  Entrada: \"" + expr + "\"");
-            List<String> tokens = tokenizar(expr);
-            System.out.println("   Tokens : " + tokens);
+            System.out.println("\nEntrada:\n" + codigo);
+            System.out.println("-".repeat(70));
 
-            boolean resultado = reconocer(tokens);
-            System.out.println(
-                "\n   Resultado: " + (resultado ? "ACEPTADA" : "RECHAZADA")
+            // Ejecutar el escaner (AFD)
+            List<Token> tokens = escanear(codigo);
+
+            // Construir la salida
+            StringBuilder sb = new StringBuilder();
+            for (Token t : tokens) {
+                System.out.println(t);
+                sb.append(t).append("\n");
+            }
+
+            System.out.println("-".repeat(70));
+            System.out.println("Total de tokens: " + tokens.size());
+
+            // Mostrar resultado en un JScrollPane para manejar salidas largas
+            JTextArea area = new JTextArea(sb.toString());
+            area.setEditable(false);
+            area.setFont(
+                new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 13)
             );
-            System.out.println("─".repeat(75));
+            JScrollPane scroll = new JScrollPane(area);
+            scroll.setPreferredSize(new java.awt.Dimension(500, 400));
 
-            ultimoResultado =
-                "Expresion: \"" +
-                expr +
-                "\"\nResultado: " +
-                (resultado ? " ACEPTADA" : " RECHAZADA") +
-                "\n\n";
+            ultimoResultado = "Tokens generados: " + tokens.size() + "\n\n";
+
+            JOptionPane.showMessageDialog(
+                null,
+                scroll,
+                "Tokens reconocidos (" + tokens.size() + ")",
+                JOptionPane.INFORMATION_MESSAGE
+            );
         }
     }
 }
